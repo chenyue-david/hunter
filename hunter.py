@@ -7,7 +7,7 @@ headers = { 'User-Agent' : user_agent }
 req = Request(url, None, headers)
 
 try:
-   response = urlopen(req)  
+   response = urlopen(req, timeout = 10)
 except URLError, e:  
   if hasattr(e, 'reason'):  
     print 'We failed to reach a server.'  
