@@ -3,6 +3,7 @@
 import string
 import urllib2
 import re
+import datetime
 
 #----------- 处理页面上的各种标签 -----------
 class HTML_Tool:
@@ -32,16 +33,25 @@ class HTML_Tool:
         return x  
     
 class One_Spider:
-    # 申明相关的属性
-    def __init__(self,url):  
-        self.myUrl = url + ''
-        self.datas = []
+
+    def __init__(self):  
+        self.datas = {}
         self.myTool = HTML_Tool()
+        self.myUrl = []
+        to_vol = (datetime.date.today() - datetime.date(2013, 11, 24)).days + 413
+        for i in range(0, to_vol):
+            if len(str(i)) == 1:
+                one_m = '00' + str(i)
+            elif len(str(i)) == 2:
+                one_m = '0' + str(i)
+            else: one_m = str(i)
+            self.myUrl.append('http://hanhan.qq.com/hanhan/one/one' + one_m + 'm.htm#page1')
         print u'已经启动ONE爬虫'
   
     # 初始化加载页面并将其转码储存
     def one_content(self):
         # 读取页面的原始信息并将其从gb2313转码
+        
         myPage = urllib2.urlopen(self.myUrl).read().decode("gb2313")
         # 获取该帖的标题
         title = self.find_title(myPage)
@@ -50,14 +60,14 @@ class One_Spider:
         self.save_data(self.myUrl,title,endPage)
 
     # 用来寻找该帖的标题
-    def find_title(self,myPage):
+    def find_title(self.myPage):
         # 匹配 <h1 class="tit" id="onebd" >XXXX</h1>找出标题
         myMatch = re.search(r'<h1 class="tit" id="onebd" >(.*?)</h1>', myPage, re.S)
         title = u'暂无标题'
         if myMatch:
             title  = myMatch.group(1)
         else:
-            print u'爬虫报告：无法加载文章标题！'
+            print u'无法加载文章标题！'
         # 文件名不能包含以下字符： \ / ： * ? " < > |
         title = title.replace('\\','').replace('/','').replace(':','').replace('*','').replace('?','').replace('"','').replace('>','').replace('<','').replace('|','')
         return title
@@ -87,21 +97,13 @@ class One_Spider:
 
     # 将内容从页面代码中抠出来
     def deal_data(self,myPage):
-        myItems = re.findall('id="post_content.*?>(.*?)</div>',myPage,re.S)
+        myItems = re.findall('作者/<span>(.*?)</span>(.*?)<div class="neirong" id="picIdbd" >(.*?)<!-- /内容 -->',myPage,re.S)
         for item in myItems:
-            data = self.myTool.Replace_Char(item.replace("\n","").encode('gbk'))
+            data = self.myTool.Replace_Char(item.replace("\n",""))
             self.datas.append(data+'\n')
 
 
-
-
-# 以某小说贴吧为例子
-# bdurl = 'http://tieba.baidu.com/p/2296712428?see_lz=1&pn=1'
-
-print u'请输入贴吧的地址最后的数字串：'
-bdurl = 'http://tieba.baidu.com/p/' + str(raw_input(u'http://tieba.baidu.com/p/')) 
-
 #调用
-mySpider = Baidu_Spider(bdurl)
-mySpider.baidu_tieba()
+mySpider = One_Spider()
+mySpider.one_content()
 
