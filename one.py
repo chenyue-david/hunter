@@ -37,7 +37,7 @@ class One_Spider:
     def __init__(self):  
         self.datas = {}
         self.myTool = HTML_Tool()
-        self.myUrl = []
+        self.myUrl = {}
         to_vol = (datetime.date.today() - datetime.date(2013, 11, 24)).days + 413
         for i in range(0, to_vol):
             if len(str(i)) == 1:
@@ -45,22 +45,24 @@ class One_Spider:
             elif len(str(i)) == 2:
                 one_m = '0' + str(i)
             else: one_m = str(i)
-            self.myUrl.append('http://hanhan.qq.com/hanhan/one/one' + one_m + 'm.htm#page1')
+            self.myUrl[one_m] = ('http://hanhan.qq.com/hanhan/one/one' + one_m + 'm.htm#page1')
         print u'已经启动ONE爬虫'
   
-    # 初始化加载页面并将其转码储存
+    # 初始化加载页面并将其储存
     def one_content(self):
-        # 读取页面的原始信息并将其从gb2313转码
-        
-        myPage = urllib2.urlopen(self.myUrl).read().decode("gb2313")
-        # 获取该帖的标题
-        title = self.find_title(myPage)
-        print u'文章名称：' + title
-        # 获取最终的数据
-        self.save_data(self.myUrl,title,endPage)
+       for one_vol in self.myUrl:
+            try:
+                # 读取页面的原始信息并将其从gb2313转码
+                myPage = urllib2.urlopen(self.myUrl[one_vol]).read().decode("gb2313")
+                # 获取标题
+                title = self.find_title(self, myPage)
+                # 获取最终的数据
+                self.deal_data(self, myPage, one_vol, title)    
+            except: pass
+       self.save_data(self)
 
-    # 用来寻找该帖的标题
-    def find_title(self.myPage):
+    # 用来寻找标题
+    def find_title(self, myPage):
         # 匹配 <h1 class="tit" id="onebd" >XXXX</h1>找出标题
         myMatch = re.search(r'<h1 class="tit" id="onebd" >(.*?)</h1>', myPage, re.S)
         title = u'暂无标题'
@@ -73,34 +75,25 @@ class One_Spider:
         return title
 
 
-    # 用来存储楼主发布的内容
-    def save_data(self,url,title,endPage):
-        # 加载页面数据到数组中
-        self.get_data(url,endPage)
+    # 用来存储内容
+    def save_data(self):
         # 打开本地文件
-        f = open(title+'.txt','w+')
-        f.writelines(self.datas)
+        f = open('one_is_all.txt','a')
+        for one_vol in self.datas:
+            f.write(one_vol)
+            f.write(self.datas)
         f.close()
         print u'爬虫报告：文件已下载到本地并打包成txt文件'
         print u'请按任意键退出...'
         raw_input();
 
-    # 获取页面源码并将其存储到数组中
-    def get_data(self,url,endPage):
-        url = url + '&pn='
-        for i in range(1,endPage+1):
-            print u'爬虫报告：爬虫%d号正在加载中...' % i
-            myPage = urllib2.urlopen(url + str(i)).read()
-            # 将myPage中的html代码处理并存储到datas里面
-            self.deal_data(myPage.decode('gbk'))
-            
-
     # 将内容从页面代码中抠出来
-    def deal_data(self,myPage):
-        myItems = re.findall('作者/<span>(.*?)</span>(.*?)<div class="neirong" id="picIdbd" >(.*?)<!-- /内容 -->',myPage,re.S)
-        for item in myItems:
-            data = self.myTool.Replace_Char(item.replace("\n",""))
-            self.datas.append(data+'\n')
+    def deal_data(self, myPage, one_vol, title):
+        myItems = re.match('作者/<span>(.*?)</span>(.*?)<div class="neirong" id="picIdbd" >(.*?)<!-- /内容 -->',myPage,re.S).group(1, 3)
+        author = myItems[0]
+        article = myItems[1]
+        data = title + "\n"  + "作者：" + author + "\n" + self.myTool.Replace_Char(article.replace("\n",""))
+        self.datas[one_vol] = data+'\n'
 
 
 #调用
