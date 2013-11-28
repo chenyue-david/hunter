@@ -4,6 +4,10 @@ import string
 import urllib2
 import re
 import datetime
+import sys
+
+reload(sys)
+sys.setdefaultencoding('utf8')
 
 #----------- 处理页面上的各种标签 -----------
 class HTML_Tool:
@@ -39,7 +43,7 @@ class One_Spider:
         self.myTool = HTML_Tool()
         self.myUrl = {}
         to_vol = (datetime.date.today() - datetime.date(2013, 11, 24)).days + 413
-        for i in range(413, to_vol):
+        for i in range(177, to_vol):
             one_m = str(i)
             self.myUrl[one_m] = ('http://hanhan.qq.com/hanhan/one/one' + one_m + 'm.htm#page1')
         print u'已经启动ONE爬虫'
@@ -47,17 +51,15 @@ class One_Spider:
   
     # 初始化加载页面并将其储存
     def one_content(self):
-        for one_vol in self.myUrl:
+        for one_vol in sorted(self.myUrl.iterkeys()):
             try:
-                # 读取页面的原始信息并将其从gb2312转码
+                # 读取页面的原始信息并将其从gbk转码
                 user_agent = 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)'
                 headers = { 'User-Agent' : user_agent } 
-                req = urllib2.Request(self.myUrl[one_vol], None, headers) 
-                myPage = urllib2.urlopen(req, timeout = 5).read().decode("gb2312")
-                print myPage
+                req = urllib2.Request(self.myUrl[one_vol], None, headers)
+                myPage = urllib2.urlopen(req, timeout = 5).read().decode("gbk")
                 # 获取标题
                 title = self.find_title(myPage)
-                print title
                 # 获取最终的数据
                 self.deal_data(myPage, one_vol, title)    
             except urllib2.URLError, e:
@@ -70,7 +72,6 @@ class One_Spider:
                     print 'Error code: ', e.code
                 else:
                     print 'No exception was raised.'
-        print self.datas
         self.save_data()
 
     # 用来寻找标题
@@ -91,10 +92,10 @@ class One_Spider:
     # 用来存储内容
     def save_data(self):
         # 打开本地文件
-        f = open('one_is_all.txt','a')
-        for one_vol in self.datas:
+        f = open('one_is_all.txt', 'a')
+        for one_vol in sorted(self.datas.iterkeys()):
             f.write(one_vol)
-            f.write(self.datas)
+            f.write(self.datas[one_vol])
         f.close()
         print u'爬虫报告：文件已下载到本地并打包成txt文件'
         print u'请按任意键退出...'
@@ -102,12 +103,11 @@ class One_Spider:
 
     # 将内容从页面代码中抠出来
     def deal_data(self, myPage, one_vol, title):
-        myItems = re.search(r'作者/<span>(.*?)</span></p>(.*?)<!-- /内容 -->',myPage,re.S).group(1, 2)
-        author = myItems[0]
-        article = myItems[1]
-        print author, article
-        data = title + "\n"  + "作者：" + author + "\n" + self.myTool.Replace_Char(article.replace("\n",""))
+        article = re.search(r'<div class="neirong" id="picIdbd" >(.*?)</div>',myPage,re.S).group(1)
+        #print article, type(article)
+        data = title + "\n" + self.myTool.Replace_Char(article.replace("\n",""))
         self.datas[one_vol] = data+'\n'
+        print "已爬到vol{0}\n".format(one_vol)
 
 
 #调用
