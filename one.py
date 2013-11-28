@@ -39,27 +39,39 @@ class One_Spider:
         self.myTool = HTML_Tool()
         self.myUrl = {}
         to_vol = (datetime.date.today() - datetime.date(2013, 11, 24)).days + 413
-        for i in range(0, to_vol):
-            if len(str(i)) == 1:
-                one_m = '00' + str(i)
-            elif len(str(i)) == 2:
-                one_m = '0' + str(i)
-            else: one_m = str(i)
+        for i in range(413, to_vol):
+            one_m = str(i)
             self.myUrl[one_m] = ('http://hanhan.qq.com/hanhan/one/one' + one_m + 'm.htm#page1')
         print u'已经启动ONE爬虫'
+        print self.myUrl
   
     # 初始化加载页面并将其储存
     def one_content(self):
-       for one_vol in self.myUrl:
+        for one_vol in self.myUrl:
             try:
-                # 读取页面的原始信息并将其从gb2313转码
-                myPage = urllib2.urlopen(self.myUrl[one_vol]).read().decode("gb2313")
+                # 读取页面的原始信息并将其从gb2312转码
+                user_agent = 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)'
+                headers = { 'User-Agent' : user_agent } 
+                req = urllib2.Request(self.myUrl[one_vol], None, headers) 
+                myPage = urllib2.urlopen(req, timeout = 5).read().decode("gb2312")
+                print myPage
                 # 获取标题
-                title = self.find_title(self, myPage)
+                title = self.find_title(myPage)
+                print title
                 # 获取最终的数据
-                self.deal_data(self, myPage, one_vol, title)    
-            except: pass
-       self.save_data(self)
+                self.deal_data(myPage, one_vol, title)    
+            except urllib2.URLError, e:
+
+                if hasattr(e, 'reason'):
+                    print 'We failed to reach a server.'
+                    print 'Reason: ', e.reason
+                elif hasattr(e, 'code'):
+                    print 'The server couldn\'t fulfill the request.'
+                    print 'Error code: ', e.code
+                else:
+                    print 'No exception was raised.'
+        print self.datas
+        self.save_data()
 
     # 用来寻找标题
     def find_title(self, myPage):
@@ -72,6 +84,7 @@ class One_Spider:
             print u'无法加载文章标题！'
         # 文件名不能包含以下字符： \ / ： * ? " < > |
         title = title.replace('\\','').replace('/','').replace(':','').replace('*','').replace('?','').replace('"','').replace('>','').replace('<','').replace('|','')
+        print title
         return title
 
 
@@ -89,9 +102,10 @@ class One_Spider:
 
     # 将内容从页面代码中抠出来
     def deal_data(self, myPage, one_vol, title):
-        myItems = re.match('作者/<span>(.*?)</span>(.*?)<div class="neirong" id="picIdbd" >(.*?)<!-- /内容 -->',myPage,re.S).group(1, 3)
+        myItems = re.search(r'作者/<span>(.*?)</span></p>(.*?)<!-- /内容 -->',myPage,re.S).group(1, 2)
         author = myItems[0]
         article = myItems[1]
+        print author, article
         data = title + "\n"  + "作者：" + author + "\n" + self.myTool.Replace_Char(article.replace("\n",""))
         self.datas[one_vol] = data+'\n'
 
